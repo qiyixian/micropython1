@@ -33,7 +33,7 @@ static mp_obj_t mycan_make_new(const mp_obj_type_t *type, size_t n_args, size_t 
 
     esp_err_t err = twai_driver_install_v2(&g_config, &t_config, &f_config, &self->handle);
     if (err != ESP_OK) {
-        mp_raise_msg_varg(&mp_type_OSError, "CAN init failed: 0x%x", err);
+        mp_raise_msg_varg(&mp_type_OSError, MP_ERROR_TEXT("CAN init failed: %d"), (int)err);
     }
     twai_start_v2(self->handle);
     return MP_OBJ_FROM_PTR(self);
@@ -54,7 +54,9 @@ static mp_obj_t mycan_send(mp_obj_t self_in, mp_obj_t data_in, mp_obj_t id_in) {
     tx_msg.rtr = false;
 
     esp_err_t err = twai_transmit_v2(self->handle, &tx_msg, pdMS_TO_TICKS(100));
-    if (err != ESP_OK) mp_raise_msg_varg(&mp_type_OSError, "CAN send failed: 0x%x", err);
+    if (err != ESP_OK) {
+        mp_raise_msg_varg(&mp_type_OSError, MP_ERROR_TEXT("CAN send failed: %d"), (int)err);
+    }
     return mp_const_none;
 }
 static MP_DEFINE_CONST_FUN_OBJ_3(mycan_send_obj, mycan_send);
