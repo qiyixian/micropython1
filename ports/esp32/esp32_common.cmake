@@ -6,7 +6,7 @@
 
 # Set location of base MicroPython directory.
 if(NOT MICROPY_DIR)
-    get_filename_component(MICROPY_DIR ${CMAKE_CURRENT_LIST_DIR}/../.. ABSOLUTE)
+    get_filename_component(MICROPY_DIR ${CMAKE_CURRENT_LIST_DIR}/../.. ABSOLUTE)这个文件目前是这样的，尽量少修改，参考
 endif()
 
 # Set location of the ESP32 port directory.
@@ -110,6 +110,7 @@ endif()
 list(APPEND MICROPY_SOURCE_PORT
     panichandler.c
     adc.c
+    mycan.c
     main.c
     ppp_set_auth.c
     uart.c
@@ -167,6 +168,7 @@ list(APPEND IDF_COMPONENTS
     bt
     driver
     esp_adc
+    esp_driver_twai
     esp_app_format
     esp_mm
     esp_common
