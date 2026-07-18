@@ -1,32 +1,57 @@
-name: ESP32-S3 CAN firmware
+name: esp32 port
 
 on:
   push:
+  pull_request:
     paths:
+      - '.github/workflows/*.yml'
+      - 'tools/**'
+      - 'py/**'
+      - 'extmod/**'
+      - 'shared/**'
+      - 'lib/**'
+      - 'drivers/**'
       - 'ports/esp32/**'
-      - '.github/workflows/ports_esp32.yml'
-  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+   IDF_OLDEST_VER: &oldest "v5.3"
+   IDF_NEWEST_VER: &newest "v5.5.2"
 
 jobs:
-  build:
+  build_idf:
+    strategy:
+      fail-fast: false
+      matrix:
+        idf_ver:
+          - *newest          # 只保留最新版本
+        ci_func:
+          - esp32_build_s3_c3   # 只保留 S3/C3 的构建脚本
+        # 不再需要 exclude，因为已精简
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v7
-      with:
-        submodules: 'recursive'
+
+    - name: Disable extra checks for older ESP-IDF
+      id: check_newest_ver
+      if: ${{ matrix.idf_ver != env.IDF_NEWEST_VER }}
+      run: echo "MICROPY_MAINTAINER_BUILD=0" >> ${GITHUB_ENV}
 
     - name: Setup ESP-IDF
       uses: ./.github/actions/setup_esp32
       with:
-        idf_ver: 'v5.5.2'
-        ccache_key: 'esp32s3'
+        idf_ver: ${{ matrix.idf_ver }}
+        ccache_key: ${{ matrix.ci_func }}
 
-    - name: Build MicroPython for ESP32-S3
-      run: |
-        source $IDF_PATH/export.sh
-        make -C ports/esp32 BOARD=ESP32_GENERIC_S3
+    - name: Build ci_${{matrix.ci_func }} on ESP-IDF ${{ matrix.idf_ver }}
+      run: tools/ci.sh ${{ matrix.ci_func }}
 
-    - name: Upload firmware
+    # ↓↓↓ 下面这一步是唯一新加的 ↓↓↓
+    - name: Upload ESP32-S3 firmware
+      if: success()
       uses: actions/upload-artifact@v4
       with:
         name: firmware-ESP32-S3
