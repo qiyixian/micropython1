@@ -4,6 +4,7 @@
 
 typedef struct {
     mp_obj_base_t base;
+    twai_handle_t handle;
     int tx_pin;
     int rx_pin;
     uint32_t baudrate;
@@ -26,31 +27,20 @@ static mp_obj_t mycan_make_new(const mp_obj_type_t *type, size_t n_args, size_t 
     self->rx_pin = args[ARG_rx].u_int;
     self->baudrate = args[ARG_baudrate].u_int;
 
-    // 若驱动已安装，先卸载，保证可以重新初始化
-    if (twai_driver_installed()) {
-        twai_stop();
-        twai_driver_uninstall();
-    }
-
     twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT(self->tx_pin, self->rx_pin, TWAI_MODE_NORMAL);
     twai_timing_config_t t_config = TWAI_TIMING_CONFIG_250KBITS();
     twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
 
-    esp_err_t err = twai_driver_install(&g_config, &t_config, &f_config);
+    esp_err_t err = twai_driver_install_v2(&g_config, &t_config, &f_config, &self->handle);
     if (err != ESP_OK) {
-        mp_raise_msg_varg(&mp_type_OSError, MP_ERROR_TEXT("CAN driver install failed: %d"), (int)err);
+        mp_raise_msg_varg(&mp_type_OSError, MP_ERROR_TEXT("CAN init failed: %d"), (int)err);
     }
-
-    err = twai_start();
-    if (err != ESP_OK) {
-        twai_driver_uninstall();
-        mp_raise_msg_varg(&mp_type_OSError, MP_ERROR_TEXT("CAN start failed: %d"), (int)err);
-    }
-
+    twai_start_v2(self->handle);
     return MP_OBJ_FROM_PTR(self);
 }
 
 static mp_obj_t mycan_send(mp_obj_t self_in, mp_obj_t data_in, mp_obj_t id_in) {
+    mycan_obj_t *self = MP_OBJ_TO_PTR(self_in);
     mp_buffer_info_t bufinfo;
     mp_get_buffer_raise(data_in, &bufinfo, MP_BUFFER_READ);
     uint32_t id = mp_obj_get_int(id_in);
@@ -63,7 +53,7 @@ static mp_obj_t mycan_send(mp_obj_t self_in, mp_obj_t data_in, mp_obj_t id_in) {
     tx_msg.extd = false;
     tx_msg.rtr = false;
 
-    esp_err_t err = twai_transmit(&tx_msg, pdMS_TO_TICKS(100));
+    esp_err_t err = twai_transmit_v2(self->handle, &tx_msg, pdMS_TO_TICKS(100));
     if (err != ESP_OK) {
         mp_raise_msg_varg(&mp_type_OSError, MP_ERROR_TEXT("CAN send failed: %d"), (int)err);
     }
@@ -72,8 +62,9 @@ static mp_obj_t mycan_send(mp_obj_t self_in, mp_obj_t data_in, mp_obj_t id_in) {
 static MP_DEFINE_CONST_FUN_OBJ_3(mycan_send_obj, mycan_send);
 
 static mp_obj_t mycan_recv(mp_obj_t self_in) {
+    mycan_obj_t *self = MP_OBJ_TO_PTR(self_in);
     twai_message_t rx_msg;
-    esp_err_t err = twai_receive(&rx_msg, 0);
+    esp_err_t err = twai_receive_v2(self->handle, &rx_msg, 0);
     if (err == ESP_OK) {
         mp_obj_t tuple[2];
         tuple[0] = mp_obj_new_int(rx_msg.identifier);
@@ -85,8 +76,9 @@ static mp_obj_t mycan_recv(mp_obj_t self_in) {
 static MP_DEFINE_CONST_FUN_OBJ_1(mycan_recv_obj, mycan_recv);
 
 static mp_obj_t mycan_close(mp_obj_t self_in) {
-    twai_stop();
-    twai_driver_uninstall();
+    mycan_obj_t *self = MP_OBJ_TO_PTR(self_in);
+    twai_stop_v2(self->handle);
+    twai_driver_uninstall_v2(self->handle);
     return mp_const_none;
 }
 static MP_DEFINE_CONST_FUN_OBJ_1(mycan_close_obj, mycan_close);
