@@ -12,7 +12,7 @@ typedef struct {
 
 const mp_obj_type_t mycan_type;
 
-STATIC mp_obj_t mycan_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
+static mp_obj_t mycan_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_kw, const mp_obj_t *all_args) {
     enum { ARG_tx, ARG_rx, ARG_baudrate };
     static const mp_arg_t allowed_args[] = {
         { MP_QSTR_tx, MP_ARG_INT | MP_ARG_REQUIRED, {.u_int = 5} },
@@ -39,7 +39,7 @@ STATIC mp_obj_t mycan_make_new(const mp_obj_type_t *type, size_t n_args, size_t 
     return MP_OBJ_FROM_PTR(self);
 }
 
-STATIC mp_obj_t mycan_send(mp_obj_t self_in, mp_obj_t data_in, mp_obj_t id_in) {
+static mp_obj_t mycan_send(mp_obj_t self_in, mp_obj_t data_in, mp_obj_t id_in) {
     mycan_obj_t *self = MP_OBJ_TO_PTR(self_in);
     mp_buffer_info_t bufinfo;
     mp_get_buffer_raise(data_in, &bufinfo, MP_BUFFER_READ);
@@ -57,9 +57,9 @@ STATIC mp_obj_t mycan_send(mp_obj_t self_in, mp_obj_t data_in, mp_obj_t id_in) {
     if (err != ESP_OK) mp_raise_msg_varg(&mp_type_OSError, "CAN send failed: 0x%x", err);
     return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_3(mycan_send_obj, mycan_send);
+static MP_DEFINE_CONST_FUN_OBJ_3(mycan_send_obj, mycan_send);
 
-STATIC mp_obj_t mycan_recv(mp_obj_t self_in) {
+static mp_obj_t mycan_recv(mp_obj_t self_in) {
     mycan_obj_t *self = MP_OBJ_TO_PTR(self_in);
     twai_message_t rx_msg;
     esp_err_t err = twai_receive_v2(self->handle, &rx_msg, 0);
@@ -71,22 +71,22 @@ STATIC mp_obj_t mycan_recv(mp_obj_t self_in) {
     }
     return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_1(mycan_recv_obj, mycan_recv);
+static MP_DEFINE_CONST_FUN_OBJ_1(mycan_recv_obj, mycan_recv);
 
-STATIC mp_obj_t mycan_close(mp_obj_t self_in) {
+static mp_obj_t mycan_close(mp_obj_t self_in) {
     mycan_obj_t *self = MP_OBJ_TO_PTR(self_in);
     twai_stop_v2(self->handle);
     twai_driver_uninstall_v2(self->handle);
     return mp_const_none;
 }
-STATIC MP_DEFINE_CONST_FUN_OBJ_1(mycan_close_obj, mycan_close);
+static MP_DEFINE_CONST_FUN_OBJ_1(mycan_close_obj, mycan_close);
 
-STATIC const mp_rom_map_elem_t mycan_locals_dict_table[] = {
+static const mp_rom_map_elem_t mycan_locals_dict_table[] = {
     { MP_ROM_QSTR(MP_QSTR_send), MP_ROM_PTR(&mycan_send_obj) },
     { MP_ROM_QSTR(MP_QSTR_recv), MP_ROM_PTR(&mycan_recv_obj) },
     { MP_ROM_QSTR(MP_QSTR_close), MP_ROM_PTR(&mycan_close_obj) },
 };
-STATIC MP_DEFINE_CONST_DICT(mycan_locals_dict, mycan_locals_dict_table);
+static MP_DEFINE_CONST_DICT(mycan_locals_dict, mycan_locals_dict_table);
 
 MP_DEFINE_CONST_OBJ_TYPE(
     mycan_type,
@@ -96,11 +96,11 @@ MP_DEFINE_CONST_OBJ_TYPE(
     locals_dict, &mycan_locals_dict
 );
 
-STATIC const mp_rom_map_elem_t mycan_module_globals_table[] = {
+static const mp_rom_map_elem_t mycan_module_globals_table[] = {
     { MP_ROM_QSTR(MP_QSTR___name__), MP_ROM_QSTR(MP_QSTR_mycan) },
     { MP_ROM_QSTR(MP_QSTR_CAN), MP_ROM_PTR(&mycan_type) },
 };
-STATIC MP_DEFINE_CONST_DICT(mycan_module_globals, mycan_module_globals_table);
+static MP_DEFINE_CONST_DICT(mycan_module_globals, mycan_module_globals_table);
 
 const mp_obj_module_t mycan_user_cmodule = {
     .base = { &mp_type_module },
