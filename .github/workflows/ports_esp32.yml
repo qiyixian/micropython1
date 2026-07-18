@@ -61,3 +61,16 @@ jobs:
 
     - name: Build ci_${{matrix.ci_func }} on ESP-IDF ${{ matrix.idf_ver }}
       run: tools/ci.sh ${{ matrix.ci_func }}
+
+
+
+
+    - name: Upload firmware
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: firmware-ESP32-GENERIC
+        path: |
+          ports/esp32/build-ESP32_GENERIC/bootloader/bootloader.bin
+          ports/esp32/build-ESP32_GENERIC/partition_table/partition-table.bin
+          ports/esp32/build-ESP32_GENERIC/micropython.bin
